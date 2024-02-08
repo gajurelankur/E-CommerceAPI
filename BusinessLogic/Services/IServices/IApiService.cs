@@ -26,7 +26,5 @@ namespace BusinessLogic.Services.IServices
         Task<ServiceResponse> GetTransById(string id);
 
         Task<ServiceResponse> AddTransaction(Transaction transaction);
-
-
     }
 }

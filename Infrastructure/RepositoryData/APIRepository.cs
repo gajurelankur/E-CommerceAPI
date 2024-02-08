@@ -177,31 +177,50 @@ namespace Infrastructure.RepositoryData
                 return new ServiceResponse { success = false, message = "Connection String is null" };
             }
 
-            transaction.Id = getMaxVchrno(conString);
-            string query = @"insert into Tranmain (Id,transaction_date,PRODUCTCODE,QTY_IN,QTY_OUT,amount,Remarks)values (@Id,@transaction_date,@PRODUCTCODE,@QTY_IN,@QTY_OUT,@amount,@Remarks)";
-
-            using (SqlConnection connection = new SqlConnection(conString))
+            var res = validate(conString, transaction);
+          
+            if(res.success)
             {
-                        var response = await connection.ExecuteAsync(query, new { transaction });
+
+                transaction.Id = getMaxVchrno(conString,transaction.prefix);
+                string query = @"insert into Tranmain (Id,transaction_date,PRODUCTCODE,QTY_IN,QTY_OUT,amount,Remarks,prefix) values (@Id,@transaction_date,@PRODUCTCODE,@QTY_IN,@QTY_OUT,@amount,@Remarks,@prefix)";
+
+                using (SqlConnection connection = new SqlConnection(conString))
+                {
+
+                    try
+                    {
+                        var response = await connection.ExecuteAsync(query, transaction);
                         return new ServiceResponse
                         {
                             success = true,
                             data = response
                         };
                     }
+                    catch (Exception ex)
+                    {
+                        throw ex;
+                    }
+                }
+
+                    }
+            else
+            {
+                return new ServiceResponse { success = false, message = res.message };
+            }
                 }
 
 
-        private  string getMaxVchrno(string constr)
+        private  string getMaxVchrno(string constr, string prefix)
         {
             string maxId = string.Empty;
             string VCHRNO = null;
             using (SqlConnection connection = new SqlConnection(constr))
             {
-                 maxId =  connection.ExecuteScalar<string>("Select top 1 id from Tranmain order by transaction_date desc ");
+                 maxId =  connection.ExecuteScalar<string>("Select top 1 id from Tranmain where prefix = @prefix order by transaction_date desc ", new {prefix = prefix});
                 if (string.IsNullOrEmpty(maxId))
                 {
-                    maxId = "Inv-00001";
+                    maxId = $"{getVoucherType(prefix)}00001";
                     VCHRNO = maxId;
                 }
                 else
@@ -209,11 +228,52 @@ namespace Infrastructure.RepositoryData
                     
                     int vcrno = Convert.ToInt32(maxId.Split("-")[1]);
                     vcrno++;
-                    VCHRNO = VCHRNO + vcrno;
-                    VCHRNO = VCHRNO = String.Format("INV-{0:D5}", vcrno);
+                    VCHRNO = VCHRNO = String.Format($"{getVoucherType(prefix)}"+"{0:D5}", vcrno);
                 }
                 return VCHRNO;
             }
+        }
+
+        public ServiceResponse validate(string conString,Transaction transaction)
+        {
+            using (SqlConnection connection = new SqlConnection(conString))
+            {
+                string stock  = @"SELECT SUM(QTY_IN-QTY_OUT) FROM TRANMAIN WHERE PRODUCTCODE=@productcode";
+                var currenhtStock = connection.ExecuteScalar<int>(stock, new { productcode = transaction.PRODUCTCODE });
+
+                if (transaction.QTY_OUT > currenhtStock)
+                {
+                    return new ServiceResponse { success = false, message = "Out Of Stock" };
+
+                }
+
+                else
+                {
+                    return new ServiceResponse { success = true };
+                }
+            }
+                
+
+        }
+
+
+        private  string getVoucherType(string prefix) 
+        { 
+            string vchrtype = string.Empty;
+           switch(prefix)
+            {
+                case "PI":
+                    vchrtype = "PI-";
+                    break;
+                case "TI":
+                    vchrtype = "INV-";
+                    break;
+
+                default:
+                    vchrtype = "Don't Exist";
+                    break;
+            }
+            return vchrtype;
         }
 
     }

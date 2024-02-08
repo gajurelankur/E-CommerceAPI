@@ -4,17 +4,19 @@
     {
         public string Id { get; set; }  
 
-        public DateTime TransactionDate { get; set; }
+        public DateTime transaction_date { get; set; }
 
-        public int ProductCode { get; set; }
+        public int PRODUCTCODE { get; set; }
 
         public int QTY_IN { get; set; }
 
         public int QTY_OUT { get; set; }
 
-        public decimal Amount { get; set; } = 0;
+        public decimal amount { get; set; } = 0;
 
         public string? Remarks { get; set; }  
+
+        public string? prefix { get; set; }
 
 
     }

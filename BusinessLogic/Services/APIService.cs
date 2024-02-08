@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Infrastructure.RepositoryData.IRepository;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.Identity.Client;
 
 namespace BusinessLogic.Services
 {
@@ -163,7 +164,7 @@ namespace BusinessLogic.Services
 
             }
         }
-
+        
         public async Task<ServiceResponse> GetTransById(string Id)
         {
             try
@@ -193,6 +194,7 @@ namespace BusinessLogic.Services
             try
             {
                 var conString = _configuration.GetConnectionString("DefaultConnection");
+
                 var result = await _repository.AddTransations(conString, transaction);
                 if (result == null)
                 {
@@ -211,5 +213,6 @@ namespace BusinessLogic.Services
             }
         }
 
+      
     }
 }
